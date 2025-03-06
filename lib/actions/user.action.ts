@@ -5,25 +5,27 @@ import { liveblocks } from "../liveblocks";
 
 export const getClerkUsers = async ({ userIds }: { userIds: string[] }) => {
   try {
-   
-    const { data } = await clerkClient().users.getUserList({
-      emailAddress: userIds
+    const clerk = clerkClient()
+    const { data } = await clerk.users.getUserList({
+      emailAddress: userIds,
     });
 
-    // Properly format users with correct email address access
     const users = data.map((user) => ({
       id: user.id,
-      name: `${user.firstName} ${user.lastName}`.trim(), // Handle empty names
-      email: user.emailAddresses[0]?.emailAddress || '', // Safely access email
-      avatar: user.imageUrl,
+      name: `${user.firstName || ""} ${user.lastName || ""}`.trim(), // Avoid "null null"
+      email: user.emailAddresses?.[0]?.emailAddress || "", // Handle missing email
+      avatar: user.imageUrl || "", // Default empty string if image is missing
     }));
 
-    const sortedUsers = userIds.map((email) => users.find((user) => user.email === email))
+    // Ensure sortedUsers contains only valid users (removes undefined/null)
+    const sortedUsers = userIds
+      .map((email) => users.find((user) => user.email === email))
+      .filter(Boolean); // Remove undefined/null entries
 
-    return parseStringify(sortedUsers)
+    return parseStringify(sortedUsers);
   } catch (error) {
-    console.error('Error fetching users:', error);
-    return null;
+    console.log(`Error fetching users: ${error}`);
+    return []; // Return empty array in case of failure
   }
 };
 
